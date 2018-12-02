@@ -4,7 +4,8 @@ class Model {
     }
 
     async findOne(id) {
-        let sql = `SELECT * FROM ${this.constructor.table()} WHERE ${this.pk} = id`;
+        let sql = `SELECT * FROM ${this.constructor.table()} WHERE ${this.pk} = ${id}`;
+        console.log(sql)
 
         let results = await global.db.query(sql);
 

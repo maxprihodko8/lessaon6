@@ -23,7 +23,7 @@ async function check() {
 
     let user = new User();
 
-    let userResult = await user.findOne(1);
+    let userResult = await user.findOne(2);
     console.log(userResult);
 }
 
