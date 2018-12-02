@@ -4,7 +4,7 @@ class Model {
     }
 
     async findOne(id) {
-        let sql = 'SELECT * from ' + this.table() + ' WHERE ' + this.pk + ' = ' + id;
+        let sql = `SELECT * FROM ${this.constructor.table()} WHERE ${this.pk} = id`;
 
         let results = await global.db.query(sql);
 
@@ -12,7 +12,21 @@ class Model {
     }
 
     async findAll() {
-        let sql = 'SELECT * from ' + this.table();
+        let sql = 'SELECT * FROM ' + this.constructor.table();
+
+        let results = await global.db.query(sql);
+
+        return this._deserializeMultiple(results);
+    }
+
+    async findByParams(params) {
+        let paramsToSql = '';
+
+        for (let key in params) {
+            paramsToSql += ` ${key} = ${params[key]} `;
+        }
+
+        let sql = `SELECT * FROM ${this.constructor.table()} WHERE ${paramsToSql}`;
 
         let results = await global.db.query(sql);
 
@@ -27,7 +41,8 @@ class Model {
 
     }
 
-    _deserialize(modelData) {
+    async _deserialize(modelData) {
+        let resultObject = new this.constructor();
         let data = {};
 
         if (modelData instanceof Array) {
@@ -40,25 +55,38 @@ class Model {
 
         for(let key in data) {
             if (data.hasOwnProperty(key) && filtered.includes(key)) {
-                this[key] = data[key];
+                resultObject[key] = data[key];
             }
         }
 
-/*
+        await resultObject._extractSubModels();
+
+        return resultObject;
+    }
+
+    async _extractSubModels() {
         if (this.hasMany) {
-            this.hasMany.forEach((config) => {
+            for (let key in this.hasMany) {
+                let config = this.hasMany[key];
+
                 let model = config.model;
                 let pk = config.primaryKey;
                 let fk = config.foreignKey;
-            });
-        }
-*/
 
-        return this;
+                let modelObject = new model;
+                this[model] = await modelObject.findByParams({[fk]: this.id});
+            }
+        }
     }
 
-    _deserializeMultiple(modelDataList) {
-        return modelDataList.map(modelData => this._deserialize(value));
+    async _deserializeMultiple(modelDataList) {
+        let result = [];
+
+        for (let item in modelDataList) {
+            result.push(await this._deserialize(modelDataList[item]));
+        }
+
+        return result;
     }
 }
 

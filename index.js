@@ -16,11 +16,15 @@ global.db = mysql.createConnection({
 global.db.query = util.promisify(global.db.query);
 
 async function check() {
-    let car = new Car();
+    /*let car = new Car();
 
     let carResult = await car.findOne(2);
-    console.log(carResult);
+    console.log(carResult);*/
 
+    let user = new User();
+
+    let userResult = await user.findOne(1);
+    console.log(userResult);
 }
 
 check().catch(

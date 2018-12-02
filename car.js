@@ -1,7 +1,7 @@
 const Model = require('./model');
 
 class Car extends Model {
-    table() {
+    static table() {
         return 'cars';
     }
 
