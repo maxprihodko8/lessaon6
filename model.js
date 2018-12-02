@@ -5,7 +5,6 @@ class Model {
 
     async findOne(id) {
         let sql = `SELECT * FROM ${this.constructor.table()} WHERE ${this.pk} = ${id}`;
-        console.log(sql)
 
         let results = await global.db.query(sql);
 
@@ -34,8 +33,30 @@ class Model {
         return this._deserializeMultiple(results);
     }
 
-    save() {
+    async save() {
+        if (!this.id) {
+            return await this.add();
+        } else {
+            return await this.update();
+        }
+    }
 
+    async update() {
+        global.db.query();
+    }
+
+    async add() {
+        let filtered = this.fields.filter(value => value !== 'id');
+
+        let values = filtered.map((value, index) => {
+           return this[value] !== undefined ? `"${this[value]}"` : 0;
+        });
+
+        let sql = `INSERT INTO ${this.constructor.table()} (${filtered}) VALUES (${values})`;
+
+        let result = await global.db.query(sql);
+
+        this.id = result.insertId;
     }
 
     delete() {
@@ -43,6 +64,10 @@ class Model {
     }
 
     async _deserialize(modelData) {
+        if (modelData.length === 0) {
+            throw new Error('Model was not found');
+        }
+
         let resultObject = new this.constructor();
         let data = {};
 

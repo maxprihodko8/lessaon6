@@ -23,13 +23,17 @@ async function check() {
 
     let user = new User();
 
-    let userResult = await user.findOne(2);
-    console.log(userResult);
+    try {
+        user.age = 18;
+        user.first_name = 'BBB';
+        await user.save();
+        //let userResult = await user.findOne(5);
+    } catch (e) {
+        console.log(e.message);
+    }
 }
 
-check().catch(
-    err => console.log(err)
-);
+check();
 
 
 // Открыть с БД и вывести в консоль сузествующего пользователя с машинами
