@@ -32,7 +32,7 @@ async function check() {
 
         let users = await User.loadAll();
 
-       // await users.pop().delete();
+        await users.pop().delete();
 
         let car1 = new Car();
         car1.user_id = user1.id;
