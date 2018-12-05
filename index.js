@@ -19,7 +19,6 @@ async function check() {
     let car = new Car();
 
     let carResult = await car.load(2);
-    console.log(carResult);
 
     let user = new User();
 
@@ -28,14 +27,16 @@ async function check() {
         user.first_name = 'BBB';
         await user.save();
 
-        let userResult = await user.load(7);
-        console.log(userResult);
+        let user1 = await user.load(7);
 
-        let user2 = await user.load(9);
+        user1.first_name = 'CCC';
+        await user1.save();
+
+        let user2 = await user.load(25);
 
         await user2.delete();
     } catch (e) {
-        console.log(e.message);
+        console.log(e);
     }
 }
 

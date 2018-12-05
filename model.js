@@ -44,13 +44,13 @@ class Model {
     async update() {
         let filtered = this.fields.filter(value => value !== 'id');
 
-        let values = filtered.map((value, index) => {
-            return this[value] !== undefined ? `"${this[value]}"` : 0;
+        let values = filtered.map((value, index, array) => {
+            return this[value] != null ? `${array[index]} = "${this[value]}"` : 0;
         });
 
-        let sql = `UPDATE TABLE ${this.constructor.table()} SET (${filtered}) VALUES (${values})`;
+        let sql = `UPDATE ${this.constructor.table()} SET ${values} WHERE ${this.pk} = ${this[this.pk]}`;
 
-        let result = await global.db.query(sql);
+        await global.db.query(sql);
     }
 
     async add() {
