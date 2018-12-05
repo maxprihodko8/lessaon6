@@ -27,10 +27,11 @@ async function check() {
         user.age = 18;
         user.first_name = 'BBB';
         await user.save();
-        let userResult = await user.load(5);
-        console.log(userResult)
 
-        let user2 = await user.load(6);
+        let userResult = await user.load(7);
+        console.log(userResult);
+
+        let user2 = await user.load(9);
 
         await user2.delete();
     } catch (e) {

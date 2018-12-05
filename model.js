@@ -34,7 +34,7 @@ class Model {
     }
 
     async save() {
-        if (!this.id) {
+        if (!this[this.pk]) {
             return await this.add();
         } else {
             return await this.update();
@@ -64,15 +64,15 @@ class Model {
 
         let result = await global.db.query(sql);
 
-        this.id = result.insertId;
+        this[this.pk] = result.insertId;
     }
 
     async delete() {
-        if (this.id == null) {
+        if (this[this.pk] == null) {
             throw new Error('User was not loaded');
         }
 
-        let sql = `DELETE FROM ${this.constructor.table()} WHERE id = ${this.id}`;
+        let sql = `DELETE FROM ${this.constructor.table()} WHERE ${this.pk} = ${this[this.pk]}`;
 
         await global.db.query(sql);
     }
@@ -114,7 +114,7 @@ class Model {
                 let fk = config.foreignKey;
 
                 let modelObject = new model;
-                this[model] = await modelObject.findByParams({[fk]: this.id});
+                this[model] = await modelObject.findByParams({[fk]: this[this.pk]});
             }
         }
     }
