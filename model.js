@@ -3,7 +3,7 @@ class Model {
 
     }
 
-    async findOne(id) {
+    async load(id) {
         let sql = `SELECT * FROM ${this.constructor.table()} WHERE ${this.pk} = ${id}`;
 
         let results = await global.db.query(sql);
@@ -11,7 +11,7 @@ class Model {
         return this._deserialize(results);
     }
 
-    async findAll() {
+    async loadAll() {
         let sql = 'SELECT * FROM ' + this.constructor.table();
 
         let results = await global.db.query(sql);
@@ -42,7 +42,15 @@ class Model {
     }
 
     async update() {
-        global.db.query();
+        let filtered = this.fields.filter(value => value !== 'id');
+
+        let values = filtered.map((value, index) => {
+            return this[value] !== undefined ? `"${this[value]}"` : 0;
+        });
+
+        let sql = `UPDATE TABLE ${this.constructor.table()} SET (${filtered}) VALUES (${values})`;
+
+        let result = await global.db.query(sql);
     }
 
     async add() {
@@ -59,8 +67,14 @@ class Model {
         this.id = result.insertId;
     }
 
-    delete() {
+    async delete() {
+        if (this.id == null) {
+            throw new Error('User was not loaded');
+        }
 
+        let sql = `DELETE FROM ${this.constructor.table()} WHERE id = ${this.id}`;
+
+        await global.db.query(sql);
     }
 
     async _deserialize(modelData) {

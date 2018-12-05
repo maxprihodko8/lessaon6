@@ -16,10 +16,10 @@ global.db = mysql.createConnection({
 global.db.query = util.promisify(global.db.query);
 
 async function check() {
-    /*let car = new Car();
+    let car = new Car();
 
-    let carResult = await car.findOne(2);
-    console.log(carResult);*/
+    let carResult = await car.load(2);
+    console.log(carResult);
 
     let user = new User();
 
@@ -27,7 +27,12 @@ async function check() {
         user.age = 18;
         user.first_name = 'BBB';
         await user.save();
-        //let userResult = await user.findOne(5);
+        let userResult = await user.load(5);
+        console.log(userResult)
+
+        let user2 = await user.load(6);
+
+        await user2.delete();
     } catch (e) {
         console.log(e.message);
     }
