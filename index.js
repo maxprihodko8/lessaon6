@@ -16,25 +16,23 @@ global.db = mysql.createConnection({
 global.db.query = util.promisify(global.db.query);
 
 async function check() {
-    let car = new Car();
-
-    let carResult = await car.load(2);
+    let carResult = await Car.load(2);
 
     let user = new User();
 
     try {
         user.age = 18;
-        user.first_name = 'BBB';
+        user.first_name = 'BBB2';
         await user.save();
 
-        let user1 = await user.load(7);
+        let user1 = await User.load(7);
 
-        user1.first_name = 'DDD';
+        user1.first_name = 'DDD1';
         await user1.save();
 
-        let user2 = await user.load(27);
+        let users = await User.loadAll();
 
-        await user2.delete();
+       // await users.pop().delete();
 
         let car1 = new Car();
         car1.user_id = user1.id;

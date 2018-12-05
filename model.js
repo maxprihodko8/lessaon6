@@ -3,16 +3,16 @@ class Model {
 
     }
 
-    async load(id) {
-        let sql = `SELECT * FROM ${this.constructor.table()} WHERE ${this.pk} = ${id}`;
+    static async load(id) {
+        let sql = `SELECT * FROM ${this.table()} WHERE ${this.pk} = ${id}`;
 
         let results = await global.db.query(sql);
 
         return this._deserialize(results);
     }
 
-    async loadAll() {
-        let sql = 'SELECT * FROM ' + this.constructor.table();
+    static async loadAll() {
+        let sql = 'SELECT * FROM ' + this.table();
 
         let results = await global.db.query(sql);
 
@@ -26,7 +26,7 @@ class Model {
             paramsToSql += ` ${key} = ${params[key]} `;
         }
 
-        let sql = `SELECT * FROM ${this.constructor.table()} WHERE ${paramsToSql}`;
+        let sql = `SELECT * FROM ${this.table()} WHERE ${paramsToSql}`;
 
         let results = await global.db.query(sql);
 
@@ -34,7 +34,7 @@ class Model {
     }
 
     async save() {
-        if (!this[this.pk]) {
+        if (!this[this.constructor.pk]) {
             return await this.add();
         } else {
             return await this.update();
@@ -42,19 +42,19 @@ class Model {
     }
 
     async update() {
-        let filtered = this.fields.filter(value => value !== 'id');
+        let filtered = this.constructor.fields.filter(value => value !== 'id');
 
         let values = filtered.map((value, index, array) => {
             return this[value] != null ? `${array[index]} = "${this[value]}"` : 0;
         });
 
-        let sql = `UPDATE ${this.constructor.table()} SET ${values} WHERE ${this.pk} = ${this[this.pk]}`;
+        let sql = `UPDATE ${this.constructor.table()} SET ${values} WHERE ${this.constructor.pk} = ${this[this.constructor.pk]}`;
 
         await global.db.query(sql);
     }
 
     async add() {
-        let filtered = this.fields.filter(value => value !== 'id');
+        let filtered = this.constructor.fields.filter(value => value !== 'id');
 
         let values = filtered.map((value, index) => {
            return this[value] !== undefined ? `"${this[value]}"` : 0;
@@ -64,25 +64,40 @@ class Model {
 
         let result = await global.db.query(sql);
 
-        this[this.pk] = result.insertId;
+        this[this.constructor.pk] = result.insertId;
     }
 
     async delete() {
-        if (this[this.pk] == null) {
+        if (this[this.constructor.pk] == null) {
             throw new Error('User was not loaded');
         }
 
-        let sql = `DELETE FROM ${this.constructor.table()} WHERE ${this.pk} = ${this[this.pk]}`;
+        let sql = `DELETE FROM ${this.constructor.table()} WHERE ${this.constructor.pk} = ${this[this.constructor.pk]}`;
 
         await global.db.query(sql);
     }
 
-    async _deserialize(modelData) {
+    async _extractSubModels() {
+        if (this.hasMany) {
+            for (let key in this.hasMany) {
+                let config = this.hasMany[key];
+
+                let model = config.model;
+                let pk = config.primaryKey;
+                let fk = config.foreignKey;
+
+                let modelObject = new model;
+                this[model] = await modelObject.findByParams({[fk]: this[this.constructor.pk]});
+            }
+        }
+    }
+
+    static async _deserialize(modelData) {
         if (modelData.length === 0) {
             throw new Error('Model was not found');
         }
 
-        let resultObject = new this.constructor();
+        let resultObject = new this();
         let data = {};
 
         if (modelData instanceof Array) {
@@ -104,22 +119,7 @@ class Model {
         return resultObject;
     }
 
-    async _extractSubModels() {
-        if (this.hasMany) {
-            for (let key in this.hasMany) {
-                let config = this.hasMany[key];
-
-                let model = config.model;
-                let pk = config.primaryKey;
-                let fk = config.foreignKey;
-
-                let modelObject = new model;
-                this[model] = await modelObject.findByParams({[fk]: this[this.pk]});
-            }
-        }
-    }
-
-    async _deserializeMultiple(modelDataList) {
+    static async _deserializeMultiple(modelDataList) {
         let result = [];
 
         for (let item in modelDataList) {
@@ -129,5 +129,8 @@ class Model {
         return result;
     }
 }
+
+Model.pk = 'id';
+Model.fields = [];
 
 module.exports = Model;
