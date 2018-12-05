@@ -29,19 +29,25 @@ async function check() {
 
         let user1 = await user.load(7);
 
-        user1.first_name = 'CCC';
+        user1.first_name = 'DDD';
         await user1.save();
 
-        let user2 = await user.load(25);
+        let user2 = await user.load(27);
 
         await user2.delete();
+
+        let car1 = new Car();
+        car1.user_id = user1.id;
+        car1.model = 'The test';
+        car1.year = '1999';
+
+        await car1.save();
     } catch (e) {
         console.log(e);
     }
 }
 
 check();
-
 
 // Открыть с БД и вывести в консоль сузествующего пользователя с машинами
 
