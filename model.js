@@ -4,29 +4,37 @@ class Model {
     }
 
     static async load(id) {
-        let sql = `SELECT * FROM ${this.table()} WHERE ${this.pk} = ${id}`;
+        const sql = `SELECT * FROM ${this.table()} WHERE ${this.pk} = ${id}`;
 
         let results = await global.db.query(sql);
+
+        if (!results) {
+            throw new Error('Model was not found');
+        }
 
         return this._deserialize(results);
     }
 
     static async loadAll() {
-        let sql = 'SELECT * FROM ' + this.table();
+        const sql = 'SELECT * FROM ' + this.table();
 
         let results = await global.db.query(sql);
+
+        if (!results) {
+            throw new Error('Models were not found');
+        }
 
         return this._deserializeMultiple(results);
     }
 
-    async findByParams(params) {
+    static async findByParams(params) {
         let paramsToSql = '';
 
         for (let key in params) {
             paramsToSql += ` ${key} = ${params[key]} `;
         }
 
-        let sql = `SELECT * FROM ${this.table()} WHERE ${paramsToSql}`;
+        const sql = `SELECT * FROM ${this.table()} WHERE ${paramsToSql}`;
 
         let results = await global.db.query(sql);
 
@@ -42,25 +50,25 @@ class Model {
     }
 
     async update() {
-        let filtered = this.constructor.fields.filter(value => value !== 'id');
+        const filtered = this.constructor.fields.filter(value => value !== this.constructor.pk);
 
-        let values = filtered.map((value, index, array) => {
-            return this[value] != null ? `${array[index]} = "${this[value]}"` : 0;
+        const values = filtered.map((value, index, array) => {
+            return `${array[index]} = "${this[value]}"`;
         });
 
-        let sql = `UPDATE ${this.constructor.table()} SET ${values} WHERE ${this.constructor.pk} = ${this[this.constructor.pk]}`;
+        const sql = `UPDATE ${this.constructor.table()} SET ${values} WHERE ${this.constructor.pk} = ${this[this.constructor.pk]}`;
 
         await global.db.query(sql);
     }
 
     async add() {
-        let filtered = this.constructor.fields.filter(value => value !== 'id');
+        const filtered = this.constructor.fields.filter(value => value !== this.constructor.pk);
 
         let values = filtered.map((value, index) => {
-           return this[value] !== undefined ? `"${this[value]}"` : 0;
+           return this[value] != null ? `"${this[value]}"` : '""';
         });
 
-        let sql = `INSERT INTO ${this.constructor.table()} (${filtered}) VALUES (${values})`;
+        const sql = `INSERT INTO ${this.constructor.table()} (${filtered}) VALUES (${values})`;
 
         let result = await global.db.query(sql);
 
@@ -72,29 +80,27 @@ class Model {
             throw new Error('User was not loaded');
         }
 
-        let sql = `DELETE FROM ${this.constructor.table()} WHERE ${this.constructor.pk} = ${this[this.constructor.pk]}`;
+        const sql = `DELETE FROM ${this.constructor.table()} WHERE ${this.constructor.pk} = ${this[this.constructor.pk]}`;
 
         await global.db.query(sql);
     }
 
     async _extractSubModels() {
-        if (this.hasMany) {
-            for (let key in this.hasMany) {
-                let config = this.hasMany[key];
-
-                let model = config.model;
-                let pk = config.primaryKey;
-                let fk = config.foreignKey;
+        if (this.constructor.hasMany) {
+            for (let key in this.constructor.hasMany) {
+                let {model, primaryKey, foreignKey} = this.constructor.hasMany[key];
 
                 let modelObject = new model;
-                this[model] = await modelObject.findByParams({[fk]: this[this.constructor.pk]});
+                this[model] = await modelObject.constructor.findByParams({[foreignKey]: this[primaryKey]});
             }
         }
     }
 
     static async _deserialize(modelData) {
-        if (modelData.length === 0) {
-            throw new Error('Model was not found');
+        if (!modelData.length) {
+            if (typeof modelData !== 'object') {
+                throw new Error('Model was not found');
+            }
         }
 
         let resultObject = new this();
@@ -108,9 +114,9 @@ class Model {
 
         let filtered = Object.keys(data).filter((value => this.fields.includes(value)));
 
-        for(let key in data) {
-            if (data.hasOwnProperty(key) && filtered.includes(key)) {
-                resultObject[key] = data[key];
+        for(let key in filtered) {
+            if (data.hasOwnProperty(filtered[key])) {
+                resultObject[filtered[key]] = data[filtered[key]];
             }
         }
 
@@ -120,13 +126,7 @@ class Model {
     }
 
     static async _deserializeMultiple(modelDataList) {
-        let result = [];
-
-        for (let item in modelDataList) {
-            result.push(await this._deserialize(modelDataList[item]));
-        }
-
-        return result;
+        return await Promise.all(modelDataList.map(async (value) => await this._deserialize(value)));
     }
 }
 
